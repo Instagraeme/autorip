@@ -12,6 +12,7 @@ MINIMUMLENGTH=900
 
 TYPE=$1
 DRIVE=$2
+EXITCODE=-1
 
 log() {
   while read data
@@ -58,16 +59,10 @@ mkdir -p /media/storage/$TITLE
 echo "Saving $TITLE to /media/storage/dvd/$TITLE" | log
 # echo "Drive: $DRIVE Drivenumber: $DRIVENUMBER" | log
 
-/usr/bin/makemkvcon --directio=true --cache=1024 --upnp=false --minlength=$MINIMUMLENGTH -r mkv dev:$DRIVE all $TEMP/$TITLE | log
-EXITCODE=${PIPESTATUS[0]}
-echo "Makemkvcon exited with code: $EXITCODE" | log
+/usr/bin/makemkvcon --directio=true --cache=1024 --upnp=false --minlength=$MINIMUMLENGTH -r mkv dev:$DRIVE all $TEMP/$TITLE | log 
 
-if [ $EXITCODE -eq 0 ]; then
-  echo "Ejecting $DRIVE" | log
-  eject $DRIVE
-else
-  exit 1
-fi
+echo "Ejecting $DRIVE" | log
+eject $DRIVE
 
 echo "Syncronising $TEMP/$TITLE to $DIR/Unsorted" | log
 
