@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
   int status;     /* parent process: child's exit status */
   int match = 0;
   char * strArr;
-  char * parmList[2];
+  char * parmList[5];
   
   listenfd = socket(AF_INET, SOCK_STREAM, 0);
   printf("socket retrieve success\n");
@@ -50,36 +50,23 @@ int main(int argc, char *argv[])
     recv(connfd, buffer, bufsize, 0);
 
     strArr = strtok(buffer, " ");
-
-    if (strcmp("dvd", strArr) == 0) {
-      parmList[0] = "-c";
-      parmList[1] = "/usr/local/bin/dvd_trigger";
-      parmList[2] = strtok(NULL, " ");
-      parmList[3] = NULL;
-      match = 1;
-    }
-    if ((strcmp("bluray", strArr) == 0) && match == 0) {
-      parmList[0] = "-c";
-      parmList[1] = "/usr/local/bin/bluray_trigger";
-      parmList[2] = strtok(NULL, " ");
-      parmList[3] = NULL;
-      match = 1;
-    }
+    parmList[0] = "-c";
+    parmList[1] = "/usr/local/bin/autorip";
+    parmList[2] = strArr;
+    parmList[3] = strtok(NULL, " ");
+    parmList[4] = NULL;
+    match = 1;
 
     close(connfd);
 
-    if (match > 0)
+    childpid = fork();
+    if (childpid == 0)
     {
-      match = 0;
-      childpid = fork();
-      if (childpid == 0)
-      {
-        execv("/bin/sh", parmList);
-      }
-      else if (childpid < 0)
-      {   // handle error
-        printf("Child Error\n");
-      }
+      execv("/bin/sh", parmList);
+    }
+    else if (childpid < 0)
+    {   // handle error
+      printf("Child Error\n");
     }
 
     sleep(1);

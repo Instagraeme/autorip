@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# Parameters $1 Type $2 Drive
+
+LOGFILE="/var/log/autorip.log"
+
+BDDIR="/media/bluray"
+DVDDIR="/media/dvd"
+TEMP="/media/storage"
+
+MINIMUMLENGTH=900
+
+TYPE=$1
+DRIVE=$2
+
+log() {
+  while read data
+  do
+    DATE=`date`
+    echo "[$(date)] - $data." >> $LOGFILE
+  done
+}
+
+DATE=`date`
+TYPE="$(echo "$TYPE"|tr -d '\n')"
+DRIVE="$(echo "$DRIVE"|tr -d '\n')"
+DRIVE=/dev/$DRIVE
+echo "------------------------------------------" | log
+echo "Autorip started - Parameters: $TYPE $DRIVE" | log
+
+case $TYPE in
+  bd)
+    DIR=$BDDIR
+    ;;
+  dvd)
+    DIR=$DVDDIR
+    ;;
+  *)
+    echo "Usage: $0 {bd|dvd} {sr0|sr1|sr2|sr3}"
+    exit 1
+    ;;
+esac
+
+if grep -qs $DIR /proc/mounts; then
+  echo "$DIR is mounted." | log
+else
+  echo "$DIR is not mounted. Aborting..." | log
+fi
+
+TITLE=`udevadm info -q env -n $DRIVE | grep ID_FS_LABEL | cut -d'=' -f2 | head -n 1`
+TITLE=$(date +%s).$TITLE
+
+echo "Using Title: $TITLE. Creating directory" | log
+mkdir -p /media/storage/$TITLE
+
+# DRIVENUMBER=`echo $DRIVE | cut -c3-`
+
+echo "Saving $TITLE to /media/storage/dvd/$TITLE" | log
+# echo "Drive: $DRIVE Drivenumber: $DRIVENUMBER" | log
+
+/usr/bin/makemkvcon --directio=true --cache=1024 --upnp=false --minlength=$MINIMUMLENGTH -r mkv dev:$DRIVE all $TEMP/$TITLE | log
+EXITCODE=${PIPESTATUS[0]}
+echo "Makemkvcon exited with code: $EXITCODE" | log
+
+if [ $EXITCODE -eq 0 ]; then
+  echo "Ejecting $DRIVE" | log
+  eject $DRIVE
+else
+  exit 1
+fi
+
+echo "Syncronising $TEMP/$TITLE to $DIR/Unsorted" | log
+
+rsync -avz $TEMP/$TITLE $DIR/Unsorted | log
+
+if [ $? -eq 0 ]; then
+  rm -rf $TEMP/$TITLE
+  echo "$TITLE completed successfully" | log
+else
+  echo "Rsync error for $TITLE" | log
+fi
+
+
