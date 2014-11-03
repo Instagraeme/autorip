@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
     childpid = fork();
     if (childpid == 0)
     {
-      execv("/bin/sh", parmList);
+      execv("/bin/bash", parmList);
     }
     else if (childpid < 0)
     {   // handle error
